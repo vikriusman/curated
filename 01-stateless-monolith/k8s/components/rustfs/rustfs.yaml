@@ -1,0 +1,108 @@
+# RustFS: S3-compatible object storage running inside the cluster (replaces
+# MinIO, whose community images are no longer distributed). Used by both the
+# local and the AWS overlay. Credentials come from the overlay (Secret "rustfs").
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: storage
+---
+# Node-local disk via the local-path provisioner that ships with k3s/k3d,
+# so photos survive a RustFS pod restart.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rustfs-data
+  namespace: storage
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rustfs
+  namespace: storage
+  labels: {app: rustfs}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: rustfs}
+  template:
+    metadata:
+      labels: {app: rustfs}
+    spec:
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: rustfs
+          image: rustfs/rustfs:1.0.1
+          envFrom:
+            - secretRef: {name: rustfs}
+          env:
+            - {name: RUSTFS_VOLUMES, value: /data}
+            - {name: RUSTFS_ADDRESS, value: ":9000"}
+          ports:
+            - {name: s3, containerPort: 9000}
+            - {name: console, containerPort: 9001}
+          readinessProbe:
+            tcpSocket: {port: 9000}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: logs, mountPath: /logs}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: rustfs-data
+        - name: logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rustfs
+  namespace: storage
+spec:
+  selector: {app: rustfs}
+  ports:
+    - {name: s3, port: 9000}
+    - {name: console, port: 9001}
+---
+# Create the bucket once. Mountpoint needs it to exist at mount time.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-bucket
+  namespace: storage
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: awscli
+          image: amazon/aws-cli:2.37.9
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef: {name: rustfs, key: RUSTFS_ACCESS_KEY}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: {name: rustfs, key: RUSTFS_SECRET_KEY}
+            - {name: AWS_DEFAULT_REGION, value: us-east-1}
+          command: ["sh", "-c"]
+          args:
+            - >-
+              aws --endpoint-url http://rustfs:9000 s3api head-bucket --bucket gallery-uploads 2>/dev/null
+              || aws --endpoint-url http://rustfs:9000 s3 mb s3://gallery-uploads

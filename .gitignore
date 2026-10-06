@@ -1,0 +1,8 @@
+.DS_Store
+*.log
+
+# Terraform: state holds the generated SSH private key
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan

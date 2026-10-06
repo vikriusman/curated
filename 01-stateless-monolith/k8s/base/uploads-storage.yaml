@@ -1,0 +1,38 @@
+# S3 bucket mounted as a filesystem via the Mountpoint for Amazon S3 CSI driver.
+# Static provisioning: the PV points at an existing bucket, the PVC binds to it.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gallery-uploads
+spec:
+  capacity:
+    storage: 10Gi            # ignored by the driver, required by Kubernetes
+  accessModes: [ReadWriteMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  claimRef:
+    namespace: gallery
+    name: gallery-uploads
+  mountOptions:
+    - allow-delete
+    - uid=1000               # 'application' user in the webdevops image
+    - gid=1000
+    - allow-other
+    - region=us-east-1       # patched per overlay
+  csi:
+    driver: s3.csi.aws.com
+    volumeHandle: gallery-uploads
+    volumeAttributes:
+      bucketName: gallery-uploads   # patched per overlay
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gallery-uploads
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: ""
+  volumeName: gallery-uploads
+  resources:
+    requests:
+      storage: 10Gi

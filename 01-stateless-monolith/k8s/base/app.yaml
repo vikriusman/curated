@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gallery
+  labels: {app: gallery}
+spec:
+  replicas: 3
+  selector:
+    matchLabels: {app: gallery}
+  strategy:
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  template:
+    metadata:
+      labels: {app: gallery}
+    spec:
+      terminationGracePeriodSeconds: 20
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {app: gallery}
+      containers:
+        - name: app
+          image: stateless-gallery:dev
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef: {name: gallery-config}
+            - secretRef: {name: gallery-secret}
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef: {fieldPath: spec.nodeName}
+          # Keep serving while the ingress drops this pod from its endpoints,
+          # otherwise rolling updates cut in-flight requests (empty replies).
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: "/healthz?ready=1"
+              port: 80
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {memory: 256Mi}
+          volumeMounts:
+            - name: uploads
+              mountPath: /data/uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: gallery-uploads
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gallery
+spec:
+  selector: {app: gallery}
+  ports:
+    - port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gallery
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gallery
+                port: {number: 80}

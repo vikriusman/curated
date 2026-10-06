@@ -1,0 +1,35 @@
+# Local overlay (k3d). Dummy credentials: this lab never leaves your machine.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+components:
+  - ../../components/rustfs
+
+configMapGenerator:
+  - name: gallery-config
+    namespace: gallery
+    literals:
+      - BASE_URL=http://localhost:8080/
+      - "SESSION_REDIS_URL=tcp://redis:6379?prefix=gallery:sess:"
+      - UPLOAD_PATH=/data/uploads
+
+secretGenerator:
+  - name: gallery-secret
+    namespace: gallery
+    literals:
+      - APP_KEY=local-dev-only-not-a-secret
+      - DEMO_PASSWORD=demo
+  - name: rustfs
+    namespace: storage
+    literals:
+      - RUSTFS_ACCESS_KEY=gallery-local
+      - RUSTFS_SECRET_KEY=gallery-local-secret
+  # Credentials for the Mountpoint CSI driver (name and keys match the chart defaults).
+  - name: aws-secret
+    namespace: kube-system
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - key_id=gallery-local
+      - access_key=gallery-local-secret
