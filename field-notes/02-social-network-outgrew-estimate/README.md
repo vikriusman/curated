@@ -10,6 +10,8 @@
 | **My role** | DevOps: providing and operating the environments the application needed |
 | **Outcome** | Infrastructure sized for two years became unusable after two months. Fixing it cost more than the original agreement covered, and after the second year the client did not renew |
 
+![Before and after](architecture.drawio.svg)
+
 ## What we believed at the start
 
 None of us (backend, DevOps, solution architect) had built a social network before. The one thing we knew was that a personalised "for you" feed needs machine learning. This product explicitly did not want one, so we concluded the rest would be easy: posts, a feed, a search box.
