@@ -17,3 +17,11 @@ Real production work that cannot be reproduced publicly: anonymized, numbers app
 |---|---|---|
 | [01](field-notes/01-ha-kubernetes-three-regions/) | Highly available on-prem Kubernetes across three regions | etcd and control-plane HA, keepalived + MetalLB, k3s to RKE2 without downtime, power-cut drill, entry point across regions |
 | [02](field-notes/02-social-network-outgrew-estimate/) | An internal social network that outgrew its estimate in two months (postmortem) | Capacity estimation, search on growing data, pagination, media out of the database, cost of overconfidence |
+
+## Playbooks
+
+How I set things up by default, distilled from pipelines and platforms I run in production. Snippets are rewritten and generic.
+
+| # | Playbook | Topics |
+|---|---|---|
+| [01](playbooks/01-protected-branch-pipeline/) | Protected branches, merge-request gates and shared pipeline components | GitLab CI/CD, branch protection, Trivy dependency scan as a merge gate, pre-commit lint, versioned CI/CD catalog components |
