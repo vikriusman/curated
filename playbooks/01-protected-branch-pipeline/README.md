@@ -4,6 +4,8 @@
 
 **Platform: GitLab CI/CD** (self-managed GitLab, `.gitlab-ci.yml`, components from a CI/CD catalog). All snippets below are `.gitlab-ci.yml`.
 
+> **This is the minimum, not the whole pipeline.** Every project I set up gets at least what is described here. Projects differ, so each one adds its own parts on top of this baseline, according to its characteristics; what follows is the part that never gets left out.
+
 The goal is simple: **nothing reaches a shared environment except through a reviewed, verified merge request**, and every service gets the same pipeline without each team copying it.
 
 ## The flow
