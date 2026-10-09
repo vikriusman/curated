@@ -1,0 +1,102 @@
+# Progressive delivery: Argo Rollouts shifts traffic between two Services by
+# rewriting the weights of an Envoy Gateway HTTPRoute (Gateway API plugin).
+# The same thing an operator does by hand when editing route weights.
+#
+# Two gates:
+#   1. readiness: a canary that is not Ready never receives weight, and
+#      progressDeadlineAbort cancels the release automatically;
+#   2. analysis steps: after each weight increase Argo asks Loki for the canary's
+#      error rate (from the app's own request logs) before going further.
+#
+# This file is the initial state only. Releases are applied with
+# scripts/release.sh (one patch per release); re-applying this file would
+# roll the app back to v1.0.0 with default config.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: notes
+  namespace: notes
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  # A canary that is not Ready within this window aborts the release and the
+  # route weights go back to 100% stable. No metrics, no human.
+  progressDeadlineSeconds: 60
+  progressDeadlineAbort: true
+  selector:
+    matchLabels: {app: notes}
+  strategy:
+    canary:
+      stableService: notes-stable
+      canaryService: notes-canary
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: notes
+            namespace: notes
+      # Each analysis step blocks until its AnalysisRun finishes (count x interval,
+      # ~1 minute): Successful -> next step, Failed -> abort and 100% back to stable.
+      steps:
+        - setWeight: 5
+        - analysis: &gate
+            templates:
+              - templateName: loki-error-rate
+                clusterScope: true
+            args:
+              - {name: namespace, value: notes}
+              - {name: app, value: notes}
+              - name: canary-hash
+                valueFrom:
+                  podTemplateHashValue: Latest
+        - setWeight: 25
+        - analysis: *gate
+        - setWeight: 50
+        - analysis: *gate
+  template:
+    metadata:
+      labels: {app: notes}
+    spec:
+      # DRAIN_DELAY + SHUTDOWN_TIMEOUT must fit inside this.
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {app: notes}
+      containers:
+        - name: app
+          image: notes:v1.0.0
+          args: ["serve"]
+          ports:
+            - {name: http, containerPort: 8080}
+          # 12-factor III: all config is env. It lives in the pod template, so a
+          # config change is a template change: a new revision that goes through
+          # the same canary gate as a code change (release = build + config).
+          env:
+            - {name: LOG_LEVEL, value: info}
+            - {name: DRAIN_DELAY, value: 5s}
+            - {name: SHUTDOWN_TIMEOUT, value: 15s}
+            - {name: HEALTH_INTERVAL, value: 3s}
+            - {name: DEPENDENCY_TIMEOUT, value: 1s}
+            # Chaos knob: share of API requests answered with 500. Probes stay green.
+            - {name: FAULT_RATE, value: "0"}
+          envFrom:
+            - secretRef: {name: notes-db}       # DATABASE_URL
+          # 200 when Postgres answers (cached check), 503 otherwise or while draining.
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 2
+            failureThreshold: 2
+          # Shallow on purpose: a database outage must not restart every pod.
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 20m, memory: 24Mi}
+            limits: {memory: 96Mi}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

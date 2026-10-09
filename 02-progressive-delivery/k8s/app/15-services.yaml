@@ -1,0 +1,23 @@
+# Argo Rollouts adds a pod-template-hash selector to each, so stable and canary
+# always point at exactly one ReplicaSet.
+# Envoy Gateway does not send traffic through these ClusterIPs: it reads their
+# endpoints and load-balances per request straight to the pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: notes-stable
+  namespace: notes
+spec:
+  selector: {app: notes}
+  ports:
+    - {name: http, port: 80, targetPort: http}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notes-canary
+  namespace: notes
+spec:
+  selector: {app: notes}
+  ports:
+    - {name: http, port: 80, targetPort: http}

@@ -1,0 +1,17 @@
+# Weights start at 100/0. Only Argo Rollouts edits them after this.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: notes
+  namespace: notes
+spec:
+  parentRefs:
+    - name: public
+      namespace: gateway
+      sectionName: http
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: notes-stable, port: 80, weight: 100}
+        - {name: notes-canary, port: 80, weight: 0}

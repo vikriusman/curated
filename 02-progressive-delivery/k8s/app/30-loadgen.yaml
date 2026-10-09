@@ -1,0 +1,25 @@
+# Steady synthetic traffic through the Envoy gateway (so route weights apply),
+# giving the canary real requests, and therefore request logs, to be judged on.
+# keepalive=false: with persistent connections every request would stay pinned
+# to the endpoints that existed when loadgen started, and a new canary would get none.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: notes
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: loadgen}
+  template:
+    metadata:
+      labels: {app: loadgen}
+    spec:
+      containers:
+        - name: fortio
+          image: fortio/fortio:1.69.5
+          args: ["load", "-qps", "20", "-c", "4", "-t", "0", "-allow-initial-errors", "-quiet", "-keepalive=false",
+                 "http://public-gateway.envoy-gateway-system.svc:8080/api/notes"]
+          resources:
+            requests: {cpu: 20m, memory: 24Mi}
+            limits: {memory: 64Mi}

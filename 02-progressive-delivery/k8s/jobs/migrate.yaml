@@ -1,0 +1,25 @@
+# Admin process (12-factor XII): same image and config as the web process, run
+# once per release before the Rollout changes. scripts/release.sh substitutes
+# the image tag and recreates this Job; it is not part of `kubectl apply -f k8s/app`.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: notes-migrate
+  namespace: notes
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: notes:TAG
+          args: ["migrate"]
+          envFrom:
+            - secretRef: {name: notes-db}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

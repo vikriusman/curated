@@ -1,0 +1,8 @@
+    t  phase                        weights      stable→    canary→    ReplicaSets (hash ready/desired)
+   1s  Healthy                      100/0        594f68dfbd   594f68dfbd   594f68dfbd:3/3 
+  11s  Progressing - more replicas  95/5         594f68dfbd   678c944578   594f68dfbd:3/3 678c944578:1/1 
+  78s  Progressing - more replicas  75/25        594f68dfbd   678c944578   594f68dfbd:3/3 678c944578:1/1 
+ 142s  Progressing - more replicas  50/50        594f68dfbd   678c944578   594f68dfbd:3/3 678c944578:2/2 
+ 208s  Progressing - waiting for al 100/0        678c944578   678c944578   594f68dfbd:3/3 678c944578:3/3 
+ 212s  Healthy                      100/0        678c944578   678c944578   594f68dfbd:3/3 678c944578:3/3 
+ 239s  Healthy                      100/0        678c944578   678c944578   678c944578:3/3 

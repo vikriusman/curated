@@ -1,0 +1,55 @@
+== 0. baseline
+Images:          notes:v1.0.0 (stable)
+   route: notes-stable=100 notes-canary=0 
+   served /version: HTTP 200 v1.0.0 x40
+   served /api/notes: HTTP 200 x40  
+== 1. good release v1.1.0
+== release v1.1.0 
+   image  notes:v1.0.0 -> notes:v1.1.0
+   migrate: {"time":"2026-10-09T06:52:51.338893909Z","level":"INFO","msg":"schema up to date","version":"v1.1.0","applied":0,"known":1}
+   patched; Argo Rollouts takes over
+     1s  Progressing - more replicas need to be updated                notes-stable=100 notes-canary=0 
+     5s  Progressing - more replicas need to be updated                notes-stable=95 notes-canary=5 
+    67s  Progressing - more replicas need to be updated                notes-stable=75 notes-canary=25 
+   135s  Progressing - more replicas need to be updated                notes-stable=50 notes-canary=50 
+   201s  Healthy                                                       notes-stable=100 notes-canary=0 
+   Loki analysis runs (error rate per measurement):
+   notes-594f68dfbd-4-1             Successful  error-rate: 0.000 0.000 0.000 0.000
+   notes-594f68dfbd-4-3             Successful  error-rate: 0.000 0.000 0.000 0.000
+   notes-594f68dfbd-4-5             Successful  error-rate: 0.000 0.000 0.000 0.000
+   served /version: HTTP 200 v1.1.0 x40
+   served /api/notes: HTTP 200 x40  
+== 2. v1.1.0 with a wrong DATABASE_URL (dependency unreachable)
+== release v1.1.0 DATABASE_URL=postgres://notes@db-typo.notes.svc:5432/notes?sslmode=disable
+   env    DATABASE_URL: (unset) -> postgres://notes@db-typo.notes.svc:5432/notes?sslmode=disable
+   migrate: {"time":"2026-10-09T06:56:27.05714893Z","level":"INFO","msg":"schema up to date","version":"v1.1.0","applied":0,"known":1}
+   patched; Argo Rollouts takes over
+   notes-79fcdb8988-k98d6 /readyz: NOT READY v1.1.0  (postgres=FAIL)
+     2s  Progressing - more replicas need to be updated                notes-stable=100 notes-canary=0 
+    59s  Degraded - RolloutAborted: Rollout aborted update to revisio  notes-stable=100 notes-canary=0 
+   served /version: HTTP 200 v1.1.0 x40
+   served /api/notes: HTTP 200 x40  
+== 3. remove the bad override
+== release v1.1.0 DATABASE_URL-
+   env    DATABASE_URL: removed
+   migrate: {"time":"2026-10-09T06:57:57.066448524Z","level":"INFO","msg":"schema up to date","version":"v1.1.0","applied":0,"known":1}
+   patched; Argo Rollouts takes over
+     0s  Healthy                                                       notes-stable=100 notes-canary=0 
+   served /version: HTTP 200 v1.1.0 x40
+   served /api/notes: HTTP 200 x40  
+== 4. v1.2.0 with FAULT_RATE=0.3 (Ready, but 30% of API requests fail)
+== release v1.2.0 FAULT_RATE=0.3
+   image  notes:v1.1.0 -> notes:v1.2.0
+   env    FAULT_RATE: 0 -> 0.3
+   migrate: {"time":"2026-10-09T06:58:09.033575504Z","level":"INFO","msg":"schema up to date","version":"v1.2.0","applied":0,"known":1}
+   patched; Argo Rollouts takes over
+   notes-98596f48b-rdfzt /readyz: READY v1.2.0  (postgres=ok)
+     2s  Progressing - more replicas need to be updated                notes-stable=95 notes-canary=5 
+    18s  Progressing - more replicas need to be updated                notes-stable=100 notes-canary=0 
+    21s  Degraded - RolloutAborted: Rollout aborted update to revisio  notes-stable=100 notes-canary=0 
+   Loki analysis runs (error rate per measurement):
+   notes-594f68dfbd-4-3             Successful  error-rate: 0.000 0.000 0.000 0.000
+   notes-594f68dfbd-4-5             Successful  error-rate: 0.000 0.000 0.000 0.000
+   notes-98596f48b-7-1              Failed      error-rate: 0.263 0.273
+   served /version: HTTP 200 v1.1.0 x40
+   served /api/notes: HTTP 200 x40  

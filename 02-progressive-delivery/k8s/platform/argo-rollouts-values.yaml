@@ -1,0 +1,18 @@
+controller:
+  replicas: 1
+  resources:
+    requests: {cpu: 20m, memory: 64Mi}
+    limits: {memory: 256Mi}
+  # Lets a Rollout drive traffic weights on a Gateway API HTTPRoute (Envoy Gateway).
+  trafficRouterPlugins:
+    - name: argoproj-labs/gatewayAPI
+      location: https://github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi/releases/download/v0.17.0/gatewayapi-plugin-linux-amd64
+      # Release digest: the controller refuses a binary that does not match.
+      sha256: 1904ca787d33107c140521899d61fff030ee75d99908bd175fca5a4647759061
+dashboard:
+  enabled: true
+  # Served behind Envoy Gateway at http://<server-ip>:8080/rollouts (k8s/platform/dashboard-route.yaml).
+  rootPath: /rollouts
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}
+    limits: {memory: 128Mi}

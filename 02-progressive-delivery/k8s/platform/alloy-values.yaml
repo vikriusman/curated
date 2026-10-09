@@ -1,0 +1,52 @@
+# Grafana Alloy ships pod logs to Loki. One replica reading logs through the
+# Kubernetes API (loki.source.kubernetes) is enough for a lab and avoids
+# duplicate lines that a per-node DaemonSet with API tailing would produce.
+controller:
+  type: deployment
+  replicas: 1
+alloy:
+  resources:
+    requests: {cpu: 20m, memory: 64Mi}
+    limits: {memory: 256Mi}
+  configMap:
+    content: |
+      // Only the app namespace: the lab needs request logs of notes, nothing else.
+      discovery.kubernetes "pods" {
+        role = "pod"
+        namespaces {
+          names = ["notes"]
+        }
+      }
+
+      // Stream labels used by the LogQL queries in the analysis template.
+      // rollouts_pod_template_hash is what tells canary pods from stable pods.
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          target_label  = "app"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_rollouts_pod_template_hash"]
+          target_label  = "rollouts_pod_template_hash"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pods.output
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = "http://loki.logging.svc:3100/loki/api/v1/push"
+        }
+      }
