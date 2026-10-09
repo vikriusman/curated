@@ -9,6 +9,10 @@
 | **Period** | 2021 to 2025: about 3 months of research, 1 month to build, then operated until 2025 |
 | **Starting point** | An existing system running on LXC containers, hard to maintain and with limited high availability |
 
+![Topology](architecture.drawio.svg)
+
+<sub>Simplified and anonymized. Editable: open `architecture.drawio.svg` in [draw.io](https://app.diagrams.net), save, then run `export-diagram.sh` to pin colors for dark-mode viewers.</sub>
+
 ## Constraints
 
 - **Three regional data centers**, each in a different region of the country, each with **three racks**. The regions were linked by the client's own fiber network and treated as one large internal LAN. Latency between regions stayed under about 50 ms.
