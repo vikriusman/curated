@@ -55,7 +55,7 @@ Inside a region, a client always reached a healthy machine. **Across regions the
 - **What I proposed: one subdomain per region.** A user could log in through any region's subdomain; the login services of the three regions talked to each other in the backend. After login, the user was redirected to the subdomain of their **home region**, because each user's data lived only in their home region's database.
 - **The dispute.** The client expected one address for everyone. Per-region subdomains were accepted as the compromise. I still consider a proper global load balancer the cleaner answer wherever policy allows one.
 
-In hindsight, the redirect was not only a load-balancing workaround; it was the **data model showing through**. With user data held only in its home region, a user whose home region is completely down cannot work, whatever sits in front. The room-level power cut later showed the same boundary from the database side.
+In hindsight, the redirect was not only a load-balancing workaround; it was the **data model showing through**. With user data held only in its home region, a user whose home region is completely down cannot work, whatever sits in front. The room-level power cut in the drill showed exactly that: users of the dark region could not log in, while the other regions carried on.
 
 ## Evolution while in operation: k3s to RKE2, without downtime
 
@@ -75,9 +75,9 @@ Before formal handover, the client required a drill that did not simulate failur
 | Drill | What happened |
 |---|---|
 | **Power cut to one rack** | Service continued. Mobile clients noticed nothing. Some web clients were suddenly logged out: the first diagnosis pointed at frontend cookies and session handling. It was judged acceptable and not investigated further |
-| **Power cut to an entire room** | The Kubernetes cluster and the applications stayed up. Clients in that region could not write data, because all database instances for the region were in that room. The database topology belonged to another team; for the cluster, the drill passed |
+| **Power cut to an entire room** | The region in that room went down entirely: cluster, applications and databases. Its users could not log in. The other two regions kept serving their users without interruption |
 
-What the drill showed beyond "pass": a platform is only as available as its least available dependency. The cluster's failure domains (racks) were sound; the database's were not aligned with them, and only a real room-level power cut made that visible.
+What the drill showed beyond "pass": inside a region, losing a rack is absorbed (apart from the web logouts); losing the room takes the whole region with it, and the damage stays in that region. Because each user's data lives only in their home region, users of the dark region have nowhere else to go until it returns.
 
 ## What I would do differently today
 
@@ -85,4 +85,3 @@ What the drill showed beyond "pass": a platform is only as available as its leas
 - **Start on RKE2.** The k3s phase cost a migration that a slightly longer evaluation would have avoided.
 - **Follow up the web logouts.** Web sessions that disappear when a rack goes down usually mean session state held where a single failure can lose it. Moving session state to a shared store is exactly the pattern in [lab 01](../../01-stateless-monolith/).
 - **Revisit the etcd VIP.** etcd clients handle multiple endpoints natively; with better records of the original certificate problem, I would fix the root cause instead of adding a VIP.
-- **Align every tier's failure domains**, database included, before the drill rather than discovering the gap during it. And repeat the drill periodically, not only once before handover.
