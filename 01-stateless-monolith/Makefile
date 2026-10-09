@@ -91,6 +91,8 @@ aws-kubeconfig:
 	ssh $(SSH_OPTS) ubuntu@$$IP sudo cat /etc/rancher/k3s/k3s.yaml | sed "s#https://127.0.0.1:6443#https://$$IP:6443#" > $(AWS_KCFG); \
 	chmod 600 $(AWS_KCFG); \
 	$(AWS_K) config set-cluster default --tls-server-name=kubernetes >/dev/null; \
+	echo "waiting for the k3s API"; \
+	for i in $$(seq 60); do $(AWS_K) get --raw /readyz >/dev/null 2>&1 && break; sleep 5; done; \
 	$(AWS_K) get nodes
 
 # Join every agent to the server over the private network. The token travels

@@ -53,6 +53,13 @@ resource "aws_security_group" "node" {
     cidr_blocks = [var.allowed_cidr]
   }
   ingress {
+    description = "HTTP (Envoy Gateway, curated/02)"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_cidr]
+  }
+  ingress {
     description = "Node to node: k3s API, kubelet, flannel VXLAN"
     from_port   = 0
     to_port     = 0
@@ -113,10 +120,12 @@ resource "aws_instance" "node" {
     Name = local.name
   }
 
-  # A stopped instance reports no public IP association; without this, every
-  # plan made while the lab is paused (make aws-stop) would replace the instance.
+  # - associate_public_ip_address: a stopped instance reports none, so every plan
+  #   made while the lab is paused (make aws-stop) would replace the instance.
+  # - ami: the SSM "current" Ubuntu AMI moves with every Canonical release; picking
+  #   it up must be a deliberate rebuild, not a side effect of an unrelated change.
   lifecycle {
-    ignore_changes = [associate_public_ip_address]
+    ignore_changes = [associate_public_ip_address, ami]
   }
 }
 
@@ -150,9 +159,11 @@ resource "aws_instance" "agent" {
     Name = "${local.name}-agent-${count.index}"
   }
 
-  # A stopped instance reports no public IP association; without this, every
-  # plan made while the lab is paused (make aws-stop) would replace the instance.
+  # - associate_public_ip_address: a stopped instance reports none, so every plan
+  #   made while the lab is paused (make aws-stop) would replace the instance.
+  # - ami: the SSM "current" Ubuntu AMI moves with every Canonical release; picking
+  #   it up must be a deliberate rebuild, not a side effect of an unrelated change.
   lifecycle {
-    ignore_changes = [associate_public_ip_address]
+    ignore_changes = [associate_public_ip_address, ami]
   }
 }
