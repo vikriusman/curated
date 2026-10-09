@@ -11,7 +11,6 @@
 
 ![Topology](architecture.drawio.svg)
 
-<sub>Simplified and anonymized. Editable: open `architecture.drawio.svg` in [draw.io](https://app.diagrams.net), save, then run `export-diagram.sh` to pin colors for dark-mode viewers.</sub>
 
 ## Constraints
 
