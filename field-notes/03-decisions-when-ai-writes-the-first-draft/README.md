@@ -99,7 +99,7 @@ Every break-glass session is recorded: who asked and who approved, why, when it 
 
 ## What I take from it
 
-- **It is a trade-off, not a contest.** Refusing AI is a valid choice with real reasons behind it, but then the speed it brings is not on the table either.
+- **It is a trade-off, not a contest.** Refusing AI is a valid choice with real reasons behind it, but then none of its benefits come with that choice either: not the speed, not the repetitive checks it runs, not the long drafts it writes, and not the research and explanations that help me learn faster.
 - **Delegate the work, not the responsibility.** Repetitive checks and long drafts are where AI saves the most time. Deciding what they mean, and what to do about them, is still my job.
 - **An AI draft is a proposal.** It is reviewed like any other proposal: questioned, tested, and changed when it does not hold.
 - **Recommend only what I can take responsibility for.** My patterns come from experience and keep improving through trial and error; what I recommend is the version whose results I have seen.
