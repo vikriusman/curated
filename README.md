@@ -17,6 +17,7 @@ Real production work that cannot be reproduced publicly: anonymized, numbers app
 |---|---|---|
 | [01](field-notes/01-ha-kubernetes-three-regions/) | Highly available on-prem Kubernetes across three regions | etcd and control-plane HA, keepalived + MetalLB, k3s to RKE2 without downtime, power-cut drill, entry point across regions |
 | [02](field-notes/02-social-network-outgrew-estimate/) | An internal social network that outgrew its estimate in two months (postmortem) | Capacity estimation, search on growing data, pagination, media out of the database, cost of overconfidence |
+| [03](field-notes/03-decisions-when-ai-writes-the-first-draft/) | Making decisions when AI writes the first draft | The trade-off of using AI at all, delegating repetitive and long tasks to AI, keeping judgment and accountability, decisions that differed from the AI's first proposal, recommendation-first proposals |
 
 ## Playbooks
 
